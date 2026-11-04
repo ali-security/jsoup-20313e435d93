@@ -173,7 +173,7 @@ abstract class TreeBuilder {
     protected Tag tagFor(String tagName, ParseSettings settings) {
         Tag tag = seenTags.get(tagName); // note that we don't normalize the cache key. But tag via valueOf may be normalized.
         if (tag == null) {
-            tag = Tag.valueOf(tagName, settings);
+            tag = Tag.valueOf(tagName, settings, false); // tokeniser names are already delimited; don't trim
             seenTags.put(tagName, tag);
         }
         return tag;

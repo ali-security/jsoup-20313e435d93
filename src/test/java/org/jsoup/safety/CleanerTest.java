@@ -9,6 +9,8 @@ import org.jsoup.nodes.Entities;
 import org.jsoup.nodes.Range;
 import org.jsoup.parser.Parser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Locale;
 
@@ -372,5 +374,22 @@ public class CleanerTest {
         Range cleanRange = cleanP.sourceRange();
         assertEquals(cleanRange, origRange);
         assertEquals(clean.endSourceRange(), orig.endSourceRange());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"xmp", "script", "style", "iframe", "noembed", "noframes"})
+    void controlCharacterTagNamesDoNotAcquireRawTextBehavior(String rawTextTag) {
+        // A tag name ending in a control character is not the raw-text element, so its content must not be captured as
+        // data and later emitted unescaped inside a real raw-text element (where an inner end tag would break out).
+        String html = "<" + rawTextTag + "\u001E></" + rawTextTag + "><img src=x onerror=alert(1)>";
+        Safelist safelist = Safelist.none().addTags(rawTextTag);
+
+        String clean = Jsoup.clean(html, safelist);
+        assertFalse(clean.contains("<img"), clean);
+        assertFalse(clean.contains("onerror"), clean);
+
+        Document reparsed = Jsoup.parseBodyFragment(clean);
+        assertEquals(0, reparsed.select("img").size(), clean);
+        assertEquals(0, reparsed.select("[onerror]").size(), clean);
     }
 }

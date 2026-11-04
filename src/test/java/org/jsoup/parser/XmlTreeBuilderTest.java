@@ -314,4 +314,16 @@ public class XmlTreeBuilderTest {
         assertSame(t3, t4);
 
     }
+
+    @Test void controlCharacterTagNamesAreNotTrimmed() {
+        // tokeniser tag names are not trimmed, so a name ending in a control char is its own element, and is closed by
+        // its own end tag (not by the trimmed name)
+        String xml = "<foo\u001E>One</foo\u001E><foo>Two</foo>";
+        Document doc = Jsoup.parse(xml, Parser.xmlParser());
+        assertEquals(2, doc.children().size());
+        assertEquals("foo\u001E", doc.child(0).tagName());
+        assertEquals("One", doc.child(0).text());
+        assertEquals("foo", doc.child(1).tagName());
+        assertEquals("Two", doc.child(1).text());
+    }
 }

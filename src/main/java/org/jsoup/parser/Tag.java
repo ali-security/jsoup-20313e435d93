@@ -57,11 +57,23 @@ public class Tag implements Cloneable {
      * @return The tag, either defined or new generic.
      */
     public static Tag valueOf(String tagName, ParseSettings settings) {
+        return valueOf(tagName, settings, true);
+    }
+
+    /**
+     Tag.valueOf, optionally without trimming the name. Public API input is trimmed; tag names from the tokeniser are
+     already delimited, so must not be trimmed: otherwise a name ending in a control character would be normalized to a
+     different (e.g. raw-text) tag than the one the tree builder saw.
+     */
+    static Tag valueOf(String tagName, ParseSettings settings, boolean trim) {
         Validate.notNull(tagName);
         Tag tag = tags.get(tagName);
 
         if (tag == null) {
-            tagName = settings.normalizeTag(tagName); // the name we'll use
+            if (trim)
+                tagName = settings.normalizeTag(tagName); // the name we'll use
+            else if (!settings.preserveTagCase())
+                tagName = Normalizer.lowerCase(tagName);
             Validate.notEmpty(tagName);
             String normalName = Normalizer.lowerCase(tagName); // the lower-case name to get tag settings off
             tag = tags.get(normalName);

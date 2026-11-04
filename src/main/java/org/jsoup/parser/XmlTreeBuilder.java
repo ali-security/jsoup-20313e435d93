@@ -137,7 +137,8 @@ public class XmlTreeBuilder extends TreeBuilder {
      */
     protected void popStackToClose(Token.EndTag endTag) {
         // like in HtmlTreeBuilder - don't scan up forever for very (artificially) deeply nested stacks
-        String elName = settings.normalizeTag(endTag.tagName);
+        // as with start tags (see tagFor), the tokeniser name is already delimited, so is not trimmed
+        String elName = settings.preserveTagCase() ? endTag.tagName : endTag.normalName;
         Element firstFound = null;
 
         final int bottom = stack.size() - 1;

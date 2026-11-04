@@ -5,6 +5,8 @@ import org.jsoup.nodes.Attributes;
 
 import javax.annotation.Nullable;
 
+import static org.jsoup.internal.Normalizer.lowerCase;
+
 /**
  * Parse tokens for the Tokeniser.
  */
@@ -200,7 +202,7 @@ abstract class Token {
 
         final Tag name(String name) {
             tagName = name;
-            normalName = ParseSettings.normalName(tagName);
+            normalName = lowerCase(tagName);
             return this;
         }
 
@@ -213,7 +215,7 @@ abstract class Token {
             // might have null chars - need to replace with null replacement character
             append = append.replace(TokeniserState.nullChar, Tokeniser.replacementChar);
             tagName = tagName == null ? append : tagName.concat(append);
-            normalName = ParseSettings.normalName(tagName);
+            normalName = lowerCase(tagName);
         }
 
         final void appendTagName(char append) {
@@ -305,7 +307,7 @@ abstract class Token {
         StartTag nameAttr(String name, Attributes attributes) {
             this.tagName = name;
             this.attributes = attributes;
-            normalName = ParseSettings.normalName(tagName);
+            normalName = lowerCase(tagName);
             return this;
         }
 
