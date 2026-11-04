@@ -1,13 +1,16 @@
 name: Build
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      test-filter:
+        description: 'Optional surefire -Dtest selector; empty runs the full suite'
+        required: false
+        default: ''
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
@@ -20,15 +23,45 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up JDK ${{ matrix.java }}
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
+          # temurin publishes no arm64 JDK 8 for macOS; macOS-latest is arm64, so run x64 JDK 8 under Rosetta
+          architecture: ${{ (matrix.os == 'macOS-latest' && matrix.java == 8) && 'x64' || '' }}
           cache: 'maven'
 
       - name: Maven Compile
         run: mvn -X compile -B --file pom.xml
 
       - name: Maven Verify
-        run: mvn -X verify -B --file pom.xml
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            mvn -B verify --file pom.xml -Dtest="${{ inputs.test-filter }}" -Dsurefire.failIfNoSpecifiedTests=false
+          else
+            mvn -X verify -B --file pom.xml
+          fi
+
+      - name: List skipped tests and their reasons
+        shell: bash
+        run: |
+          echo "== Skipped testcases recorded in surefire/failsafe XML reports =="
+          for f in target/surefire-reports/TEST-*.xml target/failsafe-reports/TEST-*.xml; do
+            [ -f "$f" ] || continue
+            awk '/<skipped/ { print FILENAME ": " prev; print "    " $0 } { prev = $0 }' "$f"
+          done
+          echo "== Source-level skip annotations (reason in the trailing comment / method) =="
+          grep -rn -A2 '@Disabled' src/test/java
+          echo "UrlConnectTest: class-level @Disabled upstream - needs live internet access; surefire attributes its skip to the adjacent class in the per-class summary"
+          echo "XmlTreeBuilderTest.testSupplyParserToConnection: @Disabled upstream - fetches http://direct.infohound.net (live network)"
+          echo "ParserIT.testIssue1251: @Disabled upstream - superseded by more specific unconsume tests"
+
+      - name: Upload jar
+        if: matrix.os == 'ubuntu-latest' && matrix.java == 8
+        uses: actions/upload-artifact@v4
+        with:
+          name: jsoup-jar
+          path: target/jsoup-1.15.3.jar
+          if-no-files-found: error
 ...

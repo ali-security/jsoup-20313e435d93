@@ -56,8 +56,8 @@ public class SessionIT {
                 }
             });
             thread.setName("Runner-" + threadNum);
-            thread.start();
             thread.setUncaughtExceptionHandler(catcher);
+            thread.start();
             threads[threadNum] = thread;
         }
 
@@ -90,8 +90,8 @@ public class SessionIT {
                 }
             });
             thread.setName("Runner-" + threadNum);
-            thread.start();
             thread.setUncaughtExceptionHandler(catcher);
+            thread.start();
             threads[threadNum] = thread;
         }
 
